@@ -7,27 +7,24 @@ CC=x86_64-w64-mingw32-gcc-win32
 all: $(TARGET_SIGNED)
 
 clean:
-	rm -f ddk.o $(TARGET)
+	rm -f $(OBJECTS) $(TARGET) $(TARGET_SIGNED) $(OBJECTS:.o=.d)
+
+-include $(OBJECTS:.o=.d)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
+	$(CC) -MM $(CFLAGS) $*.c > $*.d
 
 %.a: %.def
 	x86_64-w64-mingw32-dlltool -d $< -l $@ -kill-at
 
 
 $(TARGET): $(OBJECTS)
-	$(CC) -Wl,-base-file,base.tmp -Wl,-entry,DriverEntry \
-	-nostartfiles -nostdlib -o junk.tmp $(OBJECTS) -lntoskrnl -lhal -s
-	rm junk.tmp
-	x86_64-w64-mingw32-dlltool --as=as --dllname $(TARGET) --base-file base.tmp \
-	--output-exp temp.exp
-	rm base.tmp
-	$(CC) $(CFLAGS) -Wl,-subsystem,native -Wl,-image-base,0x10000 \
-	-Wl,-file-alignment,0x1000 -Wl,-section-alignment,0x1000 \
-	-Wl,-entry,DriverEntry -Wl,-stack,0x40000 -Wl,temp.exp \
-	-mdll -nostartfiles -nostdlib -o $(TARGET) \
-	$(OBJECTS) -lntoskrnl -lhal
+	$(CC) $(CFLAGS) -shared -Wl,--subsystem,native -Wl,--image-base,0x10000 \
+-Wl,--file-alignment,0x1000 -Wl,--section-alignment,0x1000 \
+-Wl,--entry,DriverEntry@8 -Wl,--stack,0x40000 -Wl,--dynamicbase -Wl,--nxcompat \
+-nostartfiles -nostdlib -o $(TARGET) \
+$(OBJECTS) -lntoskrnl -lhal
 	$(SIGN_CMD)
 
 SIGN_SEVER=100.84.43.103
