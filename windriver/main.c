@@ -123,20 +123,35 @@ static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
     PFILE_OBJECT        pFileObj = pStack->FileObject;
     (void)pFileObj;
+    MDL userMDL;
+    PVOID systemBuffer;
 
-    if (mysetjmp()) {
+    if (!pIrp->MdlAddress) {
         goto fail_exit;
     }
+    if (mysetjmp()) {
+        goto fail_exit_release;
+    }
     __try1(myhandler);
-    __except1
-
-fail_exit:
-    myreleasejmp();
-    pIrp->IoStatus.Information = 0;
+    userMDL = *pIrp->MdlAddress;
+    MmProbeAndLockPages(&userMDL, UserMode, IoWriteAccess);
+    systemBuffer = MmGetSystemAddressForMdl(&userMDL);
+    memcpy(systemBuffer, "hello world.", 13);
+    MmUnlockPages(&userMDL);
+    __except1;
+    pIrp->IoStatus.Information = 13;
     pIrp->IoStatus.Status = STATUS_SUCCESS;
     IoCompleteRequest(pIrp, IO_NO_INCREMENT);
-
     return STATUS_SUCCESS;
+
+fail_exit_release:
+    myreleasejmp();
+fail_exit:
+    pIrp->IoStatus.Information = 0;
+    pIrp->IoStatus.Status = STATUS_ACCESS_VIOLATION;
+    IoCompleteRequest(pIrp, IO_NO_INCREMENT);
+
+    return STATUS_ACCESS_VIOLATION;
 }
 
 ULONG _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
