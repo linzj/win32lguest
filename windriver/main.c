@@ -1,4 +1,5 @@
 #include <wdm.h>
+#include "sehworkaround.h"
 
 #define DEVICE_NAME_NT_SYS      L"\\Device\\win32lguest"
 /** Win Symlink name for system access. */
@@ -122,10 +123,15 @@ static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
     PFILE_OBJECT        pFileObj = pStack->FileObject;
     (void)pFileObj;
-    __try {
-    } __except(EXCEPTION_EXECUTE_HANDLER) {
-    }
 
+    if (mysetjmp()) {
+        goto fail_exit;
+    }
+    __try1(myhandler);
+    __except1
+
+fail_exit:
+    myreleasejmp();
     pIrp->IoStatus.Information = 0;
     pIrp->IoStatus.Status = STATUS_SUCCESS;
     IoCompleteRequest(pIrp, IO_NO_INCREMENT);
@@ -145,7 +151,7 @@ ULONG _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
         pDrvObj->MajorFunction[IRP_MJ_CLEANUP]                  = lguestNtCleanup;
         pDrvObj->MajorFunction[IRP_MJ_CLOSE]                    = lguestNtClose;
         pDrvObj->MajorFunction[IRP_MJ_READ]                     = lguestNtRead;
-        pDrvObj->MajorFunction[IRP_MJ_WRITE]                    = lguestNtWrite;
+        // pDrvObj->MajorFunction[IRP_MJ_WRITE]                    = lguestNtWrite;
         return STATUS_SUCCESS;
     }
     return STATUS_NOT_IMPLEMENTED;
