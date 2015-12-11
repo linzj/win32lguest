@@ -1,9 +1,10 @@
 OBJECTS = main.o
 TARGET = ddk.sys
+TARGET_SIGNED = ddk_signed.sys
 CFLAGS = -s -I/usr/x86_64-w64-mingw32/include/ddk/
 CC=x86_64-w64-mingw32-gcc-win32
 
-all: $(TARGET)
+all: $(TARGET_SIGNED)
 
 clean:
 	rm -f ddk.o $(TARGET)
@@ -13,6 +14,7 @@ clean:
 
 %.a: %.def
 	x86_64-w64-mingw32-dlltool -d $< -l $@ -kill-at
+
 
 $(TARGET): $(OBJECTS)
 	$(CC) -Wl,-base-file,base.tmp -Wl,-entry,DriverEntry \
@@ -26,3 +28,12 @@ $(TARGET): $(OBJECTS)
 	-Wl,-entry,DriverEntry -Wl,-stack,0x40000 -Wl,temp.exp \
 	-mdll -nostartfiles -nostdlib -o $(TARGET) \
 	$(OBJECTS) -lntoskrnl -lhal
+	$(SIGN_CMD)
+
+SIGN_SEVER=100.84.43.103
+ifneq ($(SIGN_SEVER), )
+SIGN_CMD=python sign_client.py $(SIGN_SEVER)  8000 ddk.sys ddk_signed.sys
+$(TARGET_SIGNED): $(TARGET)
+	$(SIGN_CMD)
+endif
+
