@@ -6,6 +6,12 @@
 
 static PDEVICE_OBJECT g_pDevObjSys = NULL;
 
+NTKERNELAPI
+HANDLE
+PsGetCurrentProcessId(
+    VOID
+    );
+
 static NTSTATUS lguestCreateDevice(PDRIVER_OBJECT pDrvObj)
 {
     /*
@@ -118,8 +124,9 @@ static NTSTATUS _stdcall lguestNtDeviceIoControl(PDEVICE_OBJECT pDevObj, PIRP pI
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
     PFILE_OBJECT        pFileObj = pStack->FileObject;
     (void)pFileObj;
+    (void)pDevObj;
 
-    DbgPrint("lguestNtRead: Device ReferenceCount: %ld, Current IRQL: %d\n", pDevObj->ReferenceCount, KeGetCurrentIrql());
+    DbgPrint("lguestNtRead: pid: %d, Current IRQL: %d, pIrp->UserBuffer: %p\n", PsGetCurrentProcessId(), KeGetCurrentIrql(), pIrp->UserBuffer);
     if (pStack->Parameters.DeviceIoControl.IoControlCode != LGUEST_IOCTL_FAST_DO_TEST) {
         DbgPrint("DeviceIoControl is not for test.\n");
         goto fail_exit;
@@ -135,7 +142,7 @@ static NTSTATUS _stdcall lguestNtDeviceIoControl(PDEVICE_OBJECT pDevObj, PIRP pI
     }
 
     __try {
-        ProbeForWrite(pIrp->UserBuffer, 13, 0);
+        ProbeForWrite(pIrp->UserBuffer, 13, 1);
         memcpy(pIrp->UserBuffer, "hello world.", 13);
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         goto fail_exit;

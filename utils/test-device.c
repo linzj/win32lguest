@@ -59,16 +59,16 @@ int main()
         printf("fails to open device: %x.\n", rcNt);
         return 1;
     }
+    printf("my pid: %d, buf: %p.\n", GetCurrentProcessId(), buf);
     rcNt = NtDeviceIoControlFile(hFile, NULL /*hEvent*/, NULL /*ApcRoutine*/, NULL /*ApcContext*/, &Ios,
             LGUEST_IOCTL_FAST_DO_TEST,
             NULL, 0,
-            &buf, (ULONG)(256));
+            buf, (ULONG)(256));
     if (!NT_SUCCESS(rcNt)) {
         printf("fails to read file: %x.\n", rcNt);
         return 1;
     }
     CloseHandle(hFile);
     printf("%s.\n", buf);
-    printf("my pid: %d.\n", GetCurrentProcessId());
     return 0;
 }
