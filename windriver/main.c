@@ -1,5 +1,6 @@
 #include <wdm.h>
-#include "sehworkaround.h"
+#include <ntddk.h>
+#include <iocodes.h>
 
 #define DEVICE_NAME_NT_SYS      L"\\Device\\win32lguest"
 
@@ -11,8 +12,10 @@ static NTSTATUS lguestCreateDevice(PDRIVER_OBJECT pDrvObj)
      * System device.
      */
     UNICODE_STRING DevName;
+    NTSTATUS rcNt;
+
     RtlInitUnicodeString(&DevName, DEVICE_NAME_NT_SYS);
-    NTSTATUS rcNt = IoCreateDevice(pDrvObj, 0, &DevName, FILE_DEVICE_UNKNOWN, 0, FALSE, &g_pDevObjSys);
+    rcNt = IoCreateDevice(pDrvObj, 0, &DevName, FILE_DEVICE_UNKNOWN, 0, FALSE, &g_pDevObjSys);
     if (NT_SUCCESS(rcNt))
     {
         g_pDevObjSys->Flags = DO_DIRECT_IO;
@@ -25,8 +28,6 @@ static NTSTATUS lguestCreateDevice(PDRIVER_OBJECT pDrvObj)
 
 static void lguestDestroyDevices(void)
 {
-    UNICODE_STRING DosName;
-
     DbgPrint("lguestDestroyDevices: Device Reference: %ld.\n", g_pDevObjSys->ReferenceCount);
     IoDeleteDevice(g_pDevObjSys);
     g_pDevObjSys = NULL;
@@ -34,6 +35,7 @@ static void lguestDestroyDevices(void)
 
 static void _stdcall lguestDrvUnload(PDRIVER_OBJECT pDrvObj)
 {
+    (void)pDrvObj;
     lguestDestroyDevices();
 }
 
@@ -41,7 +43,9 @@ static NTSTATUS _stdcall lguestNtCreate(PDEVICE_OBJECT pDevObj, PIRP pIrp)
 {
     PIO_STACK_LOCATION  pStack = IoGetCurrentIrpStackLocation(pIrp);
     PFILE_OBJECT        pFileObj = pStack->FileObject;
+    NTSTATUS rcNt;
     (void)pFileObj;
+    (void)pDevObj;
 
     /*
      * We are not remotely similar to a directory...
@@ -55,7 +59,6 @@ static NTSTATUS _stdcall lguestNtCreate(PDEVICE_OBJECT pDevObj, PIRP pIrp)
         return STATUS_NOT_A_DIRECTORY;
     }
 
-    NTSTATUS rcNt;
     if (pIrp->RequestorMode == KernelMode)
         rcNt = STATUS_SUCCESS;
     else
@@ -81,6 +84,7 @@ static NTSTATUS _stdcall lguestNtCleanup(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
     PFILE_OBJECT        pFileObj = pStack->FileObject;
     (void)pFileObj;
+    (void)pDevObj;
 
     pIrp->IoStatus.Information = 0;
     pIrp->IoStatus.Status = STATUS_SUCCESS;
@@ -101,6 +105,7 @@ static NTSTATUS _stdcall lguestNtClose(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
     PFILE_OBJECT        pFileObj = pStack->FileObject;
     (void)pFileObj;
+    (void)pDevObj;
 
     pIrp->IoStatus.Information = 0;
     pIrp->IoStatus.Status = STATUS_SUCCESS;
@@ -109,37 +114,38 @@ static NTSTATUS _stdcall lguestNtClose(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     return STATUS_SUCCESS;
 }
 
-static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
+static NTSTATUS _stdcall lguestNtDeviceIoControl(PDEVICE_OBJECT pDevObj, PIRP pIrp)
 {
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
     PFILE_OBJECT        pFileObj = pStack->FileObject;
     (void)pFileObj;
-    MDL userMDL;
-    PVOID systemBuffer;
 
-    DbgPrint("lguestNtRead: Device ReferenceCount: %ld.\n", pDevObj->ReferenceCount);
-    if (!pIrp->MdlAddress) {
-        DbgPrint("pIrp->MdlAddress is empty.\n");
+    DbgPrint("lguestNtRead: Device ReferenceCount: %ld, Current IRQL: %d\n", pDevObj->ReferenceCount, KeGetCurrentIrql());
+    if (pStack->Parameters.DeviceIoControl.IoControlCode != LGUEST_IOCTL_FAST_DO_TEST) {
+        DbgPrint("DeviceIoControl is not for test.\n");
         goto fail_exit;
     }
-    if (mysetjmp()) {
-        BACK_FROM_EXCEPTION;
-        goto fail_exit_release;
+
+    if (pStack->Parameters.DeviceIoControl.OutputBufferLength < 13) {
+        DbgPrint("DeviceIoControl.OutputBufferLength is too small for test.\n");
+        goto fail_exit;
     }
-    __try1(myhandler);
-    userMDL = *pIrp->MdlAddress;
-    MmProbeAndLockPages(&userMDL, UserMode, IoWriteAccess);
-    systemBuffer = MmGetSystemAddressForMdl(&userMDL);
-    memcpy(systemBuffer, "hello world.", 13);
-    MmUnlockPages(&userMDL);
-    __except1;
+    if (!pIrp->UserBuffer) {
+        DbgPrint("pIrp->UserBuffer is empty.\n");
+        goto fail_exit;
+    }
+
+    __try {
+        ProbeForWrite(pIrp->UserBuffer, 13, 0);
+        memcpy(pIrp->UserBuffer, "hello world.", 13);
+    } __except(EXCEPTION_EXECUTE_HANDLER) {
+        goto fail_exit;
+    }
     pIrp->IoStatus.Information = 13;
     pIrp->IoStatus.Status = STATUS_SUCCESS;
     IoCompleteRequest(pIrp, IO_NO_INCREMENT);
     return STATUS_SUCCESS;
 
-fail_exit_release:
-    myreleasejmp();
 fail_exit:
     pIrp->IoStatus.Information = 0;
     pIrp->IoStatus.Status = STATUS_ACCESS_VIOLATION;
@@ -148,9 +154,10 @@ fail_exit:
     return STATUS_ACCESS_VIOLATION;
 }
 
-ULONG _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
+NTSTATUS _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
 {
     NTSTATUS rcNt;
+    (void)pRegPath;
     DbgPrint("linzj's entry, sizeof(wchar_t)=%u.\n", sizeof(wchar_t));
     rcNt = lguestCreateDevice(pDrvObj);
     if (NT_SUCCESS(rcNt)) {
@@ -159,10 +166,7 @@ ULONG _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
         pDrvObj->MajorFunction[IRP_MJ_CREATE]                   = lguestNtCreate;
         pDrvObj->MajorFunction[IRP_MJ_CLEANUP]                  = lguestNtCleanup;
         pDrvObj->MajorFunction[IRP_MJ_CLOSE]                    = lguestNtClose;
-        pDrvObj->MajorFunction[IRP_MJ_READ]                     = lguestNtRead;
-        // pDrvObj->MajorFunction[IRP_MJ_WRITE]                    = lguestNtWrite;
-        extern FAST_IO_DISPATCH const g_lguestDrvFastIoDispatch;
-        pDrvObj->FastIoDispatch = (PFAST_IO_DISPATCH)&g_lguestDrvFastIoDispatch;
+        pDrvObj->MajorFunction[IRP_MJ_DEVICE_CONTROL]           = lguestNtDeviceIoControl;
         return STATUS_SUCCESS;
     }
     return STATUS_NOT_IMPLEMENTED;
