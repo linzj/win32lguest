@@ -18,7 +18,6 @@ static NTSTATUS lguestCreateDevice(PDRIVER_OBJECT pDrvObj)
     rcNt = IoCreateDevice(pDrvObj, 0, &DevName, FILE_DEVICE_UNKNOWN, 0, FALSE, &g_pDevObjSys);
     if (NT_SUCCESS(rcNt))
     {
-        g_pDevObjSys->Flags = DO_DIRECT_IO;
         /* Done. */
         DbgPrint("Device Reference: %ld.\n", g_pDevObjSys->ReferenceCount);
         return rcNt;
@@ -145,7 +144,6 @@ static NTSTATUS _stdcall lguestNtDeviceIoControl(PDEVICE_OBJECT pDevObj, PIRP pI
     pIrp->IoStatus.Status = STATUS_SUCCESS;
     IoCompleteRequest(pIrp, IO_NO_INCREMENT);
     return STATUS_SUCCESS;
-
 fail_exit:
     pIrp->IoStatus.Information = 0;
     pIrp->IoStatus.Status = STATUS_ACCESS_VIOLATION;
