@@ -11,13 +11,13 @@ void myhandler(void)
 
 int mysetjmp(void)
 {
-    ExAcquireFastMutex(&g_mutex);
+    // ExAcquireFastMutex(&g_mutex);
     return setjmp(g_buf);
 }
 
 void myreleasejmp(void)
 {
-    ExReleaseFastMutex(&g_mutex);
+    // ExReleaseFastMutex(&g_mutex);
 }
 
 void init_sehworkaround(void)
