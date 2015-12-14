@@ -27,7 +27,7 @@ static void lguestDestroyDevices(void)
 {
     UNICODE_STRING DosName;
 
-    DbgPrint("Device Reference: %ld.\n", g_pDevObjSys->ReferenceCount);
+    DbgPrint("lguestDestroyDevices: Device Reference: %ld.\n", g_pDevObjSys->ReferenceCount);
     IoDeleteDevice(g_pDevObjSys);
     g_pDevObjSys = NULL;
 }
@@ -117,6 +117,7 @@ static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     MDL userMDL;
     PVOID systemBuffer;
 
+    DbgPrint("lguestNtRead: Device ReferenceCount: %ld.\n", pDevObj->ReferenceCount);
     if (!pIrp->MdlAddress) {
         DbgPrint("pIrp->MdlAddress is empty.\n");
         goto fail_exit;
