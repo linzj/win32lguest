@@ -1,0 +1,13 @@
+#ifndef IOCODES_H
+#define IOCODES_H
+
+#if defined(_WIN64)
+# define LGUEST_IOCTL_FLAG     128
+#else
+# define LGUEST_IOCTL_FLAG     0
+#endif
+
+#define LGUEST_CTL_CODE_FAST(Function)            CTL_CODE(FILE_DEVICE_UNKNOWN, (Function) | LGUEST_IOCTL_FLAG, METHOD_NEITHER,  FILE_WRITE_ACCESS)
+#define LGUEST_IOCTL_FAST_DO_TEST LGUEST_CTL_CODE_FAST(64)
+
+#endif /* IOCODES_H */
