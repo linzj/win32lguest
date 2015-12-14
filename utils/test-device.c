@@ -57,5 +57,6 @@ int main()
     }
     CloseHandle(hFile);
     printf("%s.\n", buf);
+    printf("my pid: %d.\n", GetCurrentProcessId());
     return 0;
 }

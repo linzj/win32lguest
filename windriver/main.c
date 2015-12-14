@@ -117,7 +117,6 @@ static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     MDL userMDL;
     PVOID systemBuffer;
 
-    DbgPrint("lguestNtRead: irql = %d, pid = %u, issystemprocess.\n", KeGetCurrentIrql(), PsGetCurrentProcessId(), PsIsSystemThread(PsGetCurrentThread()));
     if (!pIrp->MdlAddress) {
         DbgPrint("pIrp->MdlAddress is empty.\n");
         goto fail_exit;
@@ -128,15 +127,11 @@ static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     }
     __try1(myhandler);
     userMDL = *pIrp->MdlAddress;
-    DbgPrint("calling MmProbeAndLockPages.\n");
     MmProbeAndLockPages(&userMDL, UserMode, IoWriteAccess);
-    DbgPrint("calling MmGetSystemAddressForMdl.\n");
     systemBuffer = MmGetSystemAddressForMdl(&userMDL);
     memcpy(systemBuffer, "hello world.", 13);
-    DbgPrint("calling MmUnlockPages.\n");
     MmUnlockPages(&userMDL);
     __except1;
-    DbgPrint("out exception handling.\n");
     pIrp->IoStatus.Information = 13;
     pIrp->IoStatus.Status = STATUS_SUCCESS;
     IoCompleteRequest(pIrp, IO_NO_INCREMENT);
