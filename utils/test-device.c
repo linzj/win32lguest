@@ -44,10 +44,15 @@ int main()
          */
     }
     else {
+        printf("fails to open device: %x.\n", rcNt);
         return 1;
     }
-    if (!ReadFile(hFile, buf, 256, &read, NULL)) {
-        printf("fails to read file: %u.\n", GetLastError());
+    LARGE_INTEGER offRead;
+    offRead.QuadPart = 0;
+    rcNt = NtReadFile(hFile, NULL /*hEvent*/, NULL /*ApcRoutine*/, NULL /*ApcContext*/, &Ios,
+            &buf, (ULONG)(256), &offRead, NULL);
+    if (!NT_SUCCESS(rcNt)) {
+        printf("fails to read file: %x.\n", rcNt);
         return 1;
     }
     CloseHandle(hFile);

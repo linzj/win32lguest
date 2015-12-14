@@ -1,4 +1,4 @@
-OBJECTS = main.o sehworkaround.o
+OBJECTS = main.o sehworkaround.o fastio.o
 TARGET = ddk.sys
 TARGET_SIGNED = ddk_signed.sys
 CFLAGS = -s -I/usr/x86_64-w64-mingw32/include/ddk/

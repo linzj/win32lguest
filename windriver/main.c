@@ -17,6 +17,7 @@ static NTSTATUS lguestCreateDevice(PDRIVER_OBJECT pDrvObj)
     {
         g_pDevObjSys->Flags = DO_DIRECT_IO;
         /* Done. */
+        DbgPrint("Device Reference: %ld.\n", g_pDevObjSys->ReferenceCount);
         return rcNt;
     }
     return rcNt;
@@ -26,6 +27,7 @@ static void lguestDestroyDevices(void)
 {
     UNICODE_STRING DosName;
 
+    DbgPrint("Device Reference: %ld.\n", g_pDevObjSys->ReferenceCount);
     IoDeleteDevice(g_pDevObjSys);
     g_pDevObjSys = NULL;
 }
@@ -107,7 +109,6 @@ static NTSTATUS _stdcall lguestNtClose(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     return STATUS_SUCCESS;
 }
 
-#if 0
 static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
 {
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
@@ -116,7 +117,7 @@ static NTSTATUS _stdcall lguestNtRead(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     MDL userMDL;
     PVOID systemBuffer;
 
-    DbgPrint("irql = %d, pid = %u.\n", KeGetCurrentIrql(), PsGetCurrentProcessId());
+    DbgPrint("lguestNtRead: irql = %d, pid = %u, issystemprocess.\n", KeGetCurrentIrql(), PsGetCurrentProcessId(), PsIsSystemThread(PsGetCurrentThread()));
     if (!pIrp->MdlAddress) {
         DbgPrint("pIrp->MdlAddress is empty.\n");
         goto fail_exit;
@@ -150,74 +151,6 @@ fail_exit:
 
     return STATUS_ACCESS_VIOLATION;
 }
-#endif
-
-static BOOLEAN
-NTAPI lguestDrvFastRead(
-  IN FILE_OBJECT *FileObject,
-  IN PLARGE_INTEGER FileOffset,
-  IN ULONG Length,
-  IN BOOLEAN Wait,
-  IN ULONG LockKey,
-  OUT PVOID Buffer,
-  OUT PIO_STATUS_BLOCK IoStatus,
-  IN DEVICE_OBJECT *DeviceObject)
-{
-    DbgPrint("irql = %d, pid = %u.\n", KeGetCurrentIrql(), PsGetCurrentProcessId());
-    if (Length < 13) {
-        goto fail_exit;
-    }
-    if (mysetjmp()) {
-        BACK_FROM_EXCEPTION;
-        goto fail_exit_release;
-    }
-    __try1(myhandler);
-    memcpy(Buffer, "hello world.", 13);
-    __except1;
-    IoStatus->Information = 13;
-    IoStatus->Status = STATUS_SUCCESS;
-    return TRUE;
-
-fail_exit_release:
-    myreleasejmp();
-fail_exit:
-    IoStatus->Information = 0;
-    IoStatus->Status = STATUS_ACCESS_VIOLATION;
-
-    return FALSE;
-}
-
-static FAST_IO_DISPATCH const g_lguestDrvFastIoDispatch =
-{
-    /* .SizeOfFastIoDispatch            = */ sizeof(g_lguestDrvFastIoDispatch),
-    /* .FastIoCheckIfPossible           = */ NULL,
-    /* .FastIoRead                      = */ lguestDrvFastRead,
-    /* .FastIoWrite                     = */ NULL,
-    /* .FastIoQueryBasicInfo            = */ NULL,
-    /* .FastIoQueryStandardInfo         = */ NULL,
-    /* .FastIoLock                      = */ NULL,
-    /* .FastIoUnlockSingle              = */ NULL,
-    /* .FastIoUnlockAll                 = */ NULL,
-    /* .FastIoUnlockAllByKey            = */ NULL,
-    /* .FastIoDeviceControl             = */ NULL,
-    /* .AcquireFileForNtCreateSection   = */ NULL,
-    /* .ReleaseFileForNtCreateSection   = */ NULL,
-    /* .FastIoDetachDevice              = */ NULL,
-    /* .FastIoQueryNetworkOpenInfo      = */ NULL,
-    /* .AcquireForModWrite              = */ NULL,
-    /* .MdlRead                         = */ NULL,
-    /* .MdlReadComplete                 = */ NULL,
-    /* .PrepareMdlWrite                 = */ NULL,
-    /* .MdlWriteComplete                = */ NULL,
-    /* .FastIoReadCompressed            = */ NULL,
-    /* .FastIoWriteCompressed           = */ NULL,
-    /* .MdlReadCompleteCompressed       = */ NULL,
-    /* .MdlWriteCompleteCompressed      = */ NULL,
-    /* .FastIoQueryOpen                 = */ NULL,
-    /* .ReleaseForModWrite              = */ NULL,
-    /* .AcquireForCcFlush               = */ NULL,
-    /* .ReleaseForCcFlush               = */ NULL,
-};
 
 ULONG _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
 {
@@ -225,13 +158,14 @@ ULONG _stdcall DriverEntry(PDRIVER_OBJECT pDrvObj, PUNICODE_STRING pRegPath)
     DbgPrint("linzj's entry, sizeof(wchar_t)=%u.\n", sizeof(wchar_t));
     rcNt = lguestCreateDevice(pDrvObj);
     if (NT_SUCCESS(rcNt)) {
-        DbgPrint("linzj's lguestCreateDevice fine");
+        DbgPrint("linzj's lguestCreateDevice fine.\n");
         pDrvObj->DriverUnload = lguestDrvUnload;
         pDrvObj->MajorFunction[IRP_MJ_CREATE]                   = lguestNtCreate;
         pDrvObj->MajorFunction[IRP_MJ_CLEANUP]                  = lguestNtCleanup;
         pDrvObj->MajorFunction[IRP_MJ_CLOSE]                    = lguestNtClose;
-        // pDrvObj->MajorFunction[IRP_MJ_READ]                     = lguestNtRead;
+        pDrvObj->MajorFunction[IRP_MJ_READ]                     = lguestNtRead;
         // pDrvObj->MajorFunction[IRP_MJ_WRITE]                    = lguestNtWrite;
+        extern FAST_IO_DISPATCH const g_lguestDrvFastIoDispatch;
         pDrvObj->FastIoDispatch = (PFAST_IO_DISPATCH)&g_lguestDrvFastIoDispatch;
         return STATUS_SUCCESS;
     }
