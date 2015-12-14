@@ -15,9 +15,9 @@ def sendFile(addr, filename):
     sendSock = socket(AF_INET,SOCK_STREAM)
     sendSock.connect(addr)
     filename_tosend = filename
-    if '/' in filename_tosend:
-        filename_tosend = filename_tosend[filename_tosend.rindex('/') + 1:]
-    
+    if '\\' in filename_tosend:
+        filename_tosend = filename_tosend[filename_tosend.rindex('\\') + 1:]
+    print 'file name to send: %s, os.pathsep: %s' % (filename_tosend, os.pathsep)
     fhead=struct.pack('128s11I',filename_tosend,0,0,0,0,0,0,0,0,os.stat(filename).st_size,0,0)
     sendSock.send(fhead)
     

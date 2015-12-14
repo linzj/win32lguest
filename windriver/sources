@@ -18,3 +18,6 @@ SOURCES = \
 
 INCLUDES= \
     ../common/include
+
+SIGN_SEVER=100.84.43.103
+POST_BUILD_CMD=C:\Python27\python.exe sign_client.py $(SIGN_SEVER)  8000 $(OBJ_PATH)\$(O)\ddk.sys ddk_signed.sys
