@@ -9,6 +9,9 @@
 
 #ifndef __COLINUX_LINUX_LIST_H__
 #define __COLINUX_LINUX_LIST_H__
+#ifndef inline
+#define inline __inline
+#endif
 
 /*
  * Inspiried by the doubly linked list implementation from the Linux kernel.

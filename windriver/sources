@@ -18,6 +18,11 @@ SOURCES = \
     alloc.c \
     block.c \
     conet.c \
+    core.c \
+    fileio.c \
+    filesystem.c \
+    manager.c \
+    scsi.c \
 
 INCLUDES= \
     ../common/include; \
