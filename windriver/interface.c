@@ -19,7 +19,7 @@
 
 #include "manager.h"
 
-static NTAPI void manager_irp_cancel(
+static void NTAPI manager_irp_cancel(
 	PDEVICE_OBJECT DeviceObject,
 	PIRP Irp)
 {
@@ -31,7 +31,7 @@ static NTAPI void manager_irp_cancel(
 
 	manager = (co_manager_t *)DeviceObject->DeviceExtension;
 	if (manager) {
-		opened = (typeof(opened))(Irp->Tail.Overlay.DriverContext[0]);
+		opened = (co_manager_open_desc_t)(Irp->Tail.Overlay.DriverContext[0]);
 		if (opened) {
 			myIRP = opened->os->irp == Irp;
 			opened->os->irp = NULL;
@@ -57,6 +57,7 @@ static NTSTATUS manager_read(co_manager_t *manager, co_manager_open_desc_t opene
 	co_rc_t rc;
 	char *buffer;
 	co_queue_t *queue;
+    (void)manager;
 
 	if (!opened->active) {
 		ntStatus = STATUS_PIPE_BROKEN;
@@ -78,13 +79,16 @@ static NTSTATUS manager_read(co_manager_t *manager, co_manager_open_desc_t opene
 
 		while (co_queue_size(queue) != 0)
 		{
+            co_message_t *message;
 			co_message_queue_item_t *message_item;
+            unsigned long size;
+
 			rc = co_queue_peek_tail(queue, (void **)&message_item);
 			if (!CO_OK(rc))
 				return rc;
 
-			co_message_t *message = message_item->message;
-			unsigned long size = message->size + sizeof(*message);
+			message = message_item->message;
+			size = message->size + sizeof(*message);
 			if (io_buffer + size > io_buffer_end) {
 				break;
 			}
@@ -137,6 +141,7 @@ static NTSTATUS manager_read(co_manager_t *manager, co_manager_open_desc_t opene
 static NTSTATUS manager_write(co_manager_t *manager, co_manager_open_desc_t opened, PIRP Irp)
 {
 	NTSTATUS ntStatus = STATUS_UNSUCCESSFUL;
+    (void)manager;
 
 	if (!opened->active) {
 		ntStatus = STATUS_PIPE_BROKEN;
@@ -155,12 +160,12 @@ static NTSTATUS manager_write(co_manager_t *manager, co_manager_open_desc_t open
 		long position;
 
 		buffer = Irp->AssociatedIrp.SystemBuffer;
-		size = Irp->IoStatus.Information;
+		size = (unsigned long)Irp->IoStatus.Information;
 		size_left = size;
 		position = 0;
 
 		while (size_left > 0) {
-			message = (typeof(message))(&buffer[position]);
+			message = (co_message_t*)(&buffer[position]);
 			message_size = message->size + sizeof(*message);
 			size_left -= message_size;
 			if (size_left >= 0) {
@@ -205,7 +210,7 @@ static NTSTATUS manager_dispatch(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		goto complete;
 	}
 
-	opened = (typeof(opened))(irpStack->FileObject->FsContext);
+	opened = (co_manager_open_desc_t)(irpStack->FileObject->FsContext);
 	if (!opened) {
 		switch (irpStack->MajorFunction) {
 		case IRP_MJ_CREATE: {
@@ -303,7 +308,7 @@ static NTSTATUS manager_dispatch(PDEVICE_OBJECT DeviceObject, PIRP Irp)
 		co_manager_ioctl(manager, ioctl, ioBuffer,
 				 inputBufferLength,
 				 outputBufferLength,
-				 &Irp->IoStatus.Information,
+				 (unsigned long*)&Irp->IoStatus.Information,
 				 opened);
 
 		/* Intrinsic Success / Failure indictation is returned per ioctl. */
@@ -364,6 +369,7 @@ DriverEntry(
 	UNICODE_STRING deviceLinkUnicodeString;
 	co_manager_t *manager;
 	co_rc_t rc;
+    (void)RegistryPath;
 
 	RtlInitUnicodeString (&deviceNameUnicodeString, deviceNameBuffer);
 

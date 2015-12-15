@@ -18,7 +18,8 @@ SOURCES = \
     interface.c \
 
 INCLUDES= \
-    ../common/include
+    ../common/include; \
+    colinux/os/current/kernel
 
 SIGN_SEVER=100.84.43.103
 POST_BUILD_CMD=C:\Python27\python.exe sign_client.py $(SIGN_SEVER)  8000 $(OBJ_PATH)\$(O)\ddk.sys $(OBJ_PATH)\$(O)\ddk.sys
