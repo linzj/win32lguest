@@ -34,16 +34,10 @@ typedef /*NTOSAPI*/ NTSTATUS (*xfer_func_t)( /*IN*/ HANDLE  FileHandle, /*IN*/ H
 extern PDEVICE_OBJECT coLinux_DeviceObject;
 
 struct scatterlist {
-#ifdef CONFIG_DEBUG_SG
-	unsigned long	sg_magic;
-#endif
-	unsigned long	page_link;
-	unsigned int	offset;
-	unsigned int	length;
-	uintptr_t dma_address;
-#ifdef CONFIG_NEED_SG_DMA_LENGTH
-	unsigned int	dma_length;
-#endif
+	unsigned page_link;
+	unsigned offset;
+	unsigned length;
+	unsigned dma_address;
 };
 
 struct _io_req {

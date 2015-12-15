@@ -11,6 +11,7 @@
 #define __COLINUX_ARCH_MANAGER_H__
 
 #include <colinux/common/common.h>
+#include <colinux/arch/current/manager.h>
 
 typedef struct co_archdep_manager *co_archdep_manager_t;
 struct co_manager;

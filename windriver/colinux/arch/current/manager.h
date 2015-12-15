@@ -12,7 +12,7 @@
 
 #include <colinux/common/common.h>
 #include <colinux/kernel/manager.h>
-#include <colinux/arch/manager.h>
+#include <colinux/arch/current/mmu.h>
 #include <colinux/os/alloc.h>
 
 #include "cpuid.h"
