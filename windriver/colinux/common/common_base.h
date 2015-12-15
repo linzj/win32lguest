@@ -15,8 +15,6 @@ typedef int bool_t;
 #define PFALSE  0
 #define PTRUE   1
 
-#define PACKED_STRUCT __attribute__((packed))
-
 #define CO_MAX_MONITORS                   64
 #define CO_LINUX_PERIPHERY_API_VERSION    22
 

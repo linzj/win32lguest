@@ -65,10 +65,10 @@ static inline void co_list_del(co_list_t *entry)
  * @member:	the name of the co_list_t within the struct.
  */
 #define co_list_entry(ptr, type, member)				\
-	((type *)((char *)(ptr)-(unsigned long)(&((type *)0)->member)))
+	((type *)((char *)(ptr)-(char*)(&((type *)0)->member)))
 
-#define co_list_entry_assign(ptr, var, member)				\
-	var = co_list_entry(ptr, typeof(*var), member)
+#define co_list_entry_assign(ptr, var, member, type)\
+	var = co_list_entry(ptr, type, member)
 
 /**
  * list_for_each - iterate over a list
@@ -78,20 +78,20 @@ static inline void co_list_del(co_list_t *entry)
 #define co_list_each(pos, head) \
 	(pos = (head)->next; pos != (head); pos = pos->next)
 
-#define co_list_each_entry(pos, head, member)				\
-	for (co_list_entry_assign((head)->next, pos, member);		\
+#define co_list_each_entry(pos, head, member, type)				\
+	for (co_list_entry_assign((head)->next, pos, member, type);		\
 	     &pos->member != (head);					\
-	     co_list_entry_assign(pos->member.next, pos, member))	\
+	     co_list_entry_assign(pos->member.next, pos, member, type))	\
 									\
 
-#define co_list_each_entry_safe(pos, pos_next, head, member)		\
-	for (co_list_entry_assign((head)->next, pos, member),		\
-             co_list_entry_assign(pos->member.next, pos_next, member);	\
+#define co_list_each_entry_safe(pos, pos_next, head, member, type)		\
+	for (co_list_entry_assign((head)->next, pos, member, type),		\
+             co_list_entry_assign(pos->member.next, pos_next, member, type);	\
                                                                         \
              &pos->member != (head);                                    \
                                                                         \
              pos = pos_next,                                            \
-             co_list_entry_assign(pos->member.next, pos_next, member))  \
+             co_list_entry_assign(pos->member.next, pos_next, member, type))  \
 
 
 #endif

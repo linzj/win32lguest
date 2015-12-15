@@ -17,6 +17,7 @@ struct co_monitor;
 
 typedef struct co_block_dev co_block_dev_t;
 
+#pragma pack(1)
 struct co_block_dev {
 	unsigned long long size;
 	co_block_dev_desc_t *conf;
@@ -25,7 +26,8 @@ struct co_block_dev {
 	void (*free)(struct co_monitor *cmon, co_block_dev_t *dev);
 	unsigned int use_count;
 	int unit;
-} PACKED_STRUCT;
+};
+#pragma pack()
 
 extern void co_monitor_block_register_device(struct co_monitor *cmon, unsigned int unit,
 					     co_block_dev_t *dev);

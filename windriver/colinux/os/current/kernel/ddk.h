@@ -13,4 +13,5 @@
 
 #include <ntddk.h>
 
+#define CALLBACK
 #endif
