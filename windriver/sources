@@ -12,9 +12,11 @@ MSC_WARNING_LEVEL=/WX /W4
 #pragma warning( disable: 4201 ) // nonstandard extension used : nameless struct/union
 #pragma warning( disable: 4214 ) // nonstandard extension used : bit field types other than int
 MSC_WARNING_LEVEL=$(MSC_WARNING_LEVEL) /wd4201 /wd4214
+SOURCES_AMD64=
 
 SOURCES = \
     main.c \
+    test.asm
 
 INCLUDES= \
     ../common/include

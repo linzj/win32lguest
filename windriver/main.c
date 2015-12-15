@@ -1,6 +1,7 @@
 #include <wdm.h>
 #include <ntddk.h>
 #include <iocodes.h>
+#include <ntstrsafe.h>
 
 #define DEVICE_NAME_NT_SYS      L"\\Device\\win32lguest"
 
@@ -119,6 +120,8 @@ static NTSTATUS _stdcall lguestNtClose(PDEVICE_OBJECT pDevObj, PIRP pIrp)
     return STATUS_SUCCESS;
 }
 
+extern int myshit(int a, int b);
+
 static NTSTATUS _stdcall lguestNtDeviceIoControl(PDEVICE_OBJECT pDevObj, PIRP pIrp)
 {
     PIO_STACK_LOCATION  pStack   = IoGetCurrentIrpStackLocation(pIrp);
@@ -142,8 +145,22 @@ static NTSTATUS _stdcall lguestNtDeviceIoControl(PDEVICE_OBJECT pDevObj, PIRP pI
     }
 
     __try {
-        ProbeForWrite(pIrp->UserBuffer, 13, 1);
-        memcpy(pIrp->UserBuffer, "hello world.", 13);
+        char buf[128];
+        int ret;
+        size_t slen;
+        NTSTATUS rtNt;
+
+        ret = myshit(1, 2);
+        rtNt = RtlStringCbPrintfA(buf, 128, "hello world %d.", ret);
+        if (!NT_SUCCESS(rtNt)) {
+            goto fail_exit;
+        }
+        rtNt = RtlStringCbLengthA(buf, 128, &slen);
+        if (!NT_SUCCESS(rtNt)) {
+            goto fail_exit;
+        }
+        ProbeForWrite(pIrp->UserBuffer, slen + 1, 1);
+        memcpy(pIrp->UserBuffer, buf, slen + 1);
     } __except(EXCEPTION_EXECUTE_HANDLER) {
         goto fail_exit;
     }
