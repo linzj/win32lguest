@@ -3,23 +3,23 @@ _TEXT	SEGMENT
 co_i386_has_cpuid	PROC
 ;;Try change the CPUID FLAGS bit (put the old FLAGS in RCX)
     pushf  
-    pop    rax
-    mov    rcx,rax
+    pop    eax
+    mov    ecx,eax
 
-    xor    rax, 200000h
-    push   rax
+    xor    eax, 200000h
+    push   eax
     popf   
 ;;Read the new FLAGS (and restore the FLAGS from RCX)
     pushf  
-    pop    rax
-    xor    rax, rcx
-    push   rcx
+    pop    eax
+    xor    eax, ecx
+    push   ecx
     popf
 
     ;;Was the bit changed?
     xor rdx, rdx ;; init the auto variable
 
-    and    rax, 200000h
+    and    eax, 200000h
     je     $EXIT@co_i386_has_cpuid
     mov    rdx, 1
 $EXIT@co_i386_has_cpuid:

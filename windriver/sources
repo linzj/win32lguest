@@ -36,6 +36,7 @@ SOURCES = \
     antinx.c \
     apic.c \
     cpuid.c \
+    interrupt.c \
     cpuid_asm.asm \
     flushtlb.asm \
 
