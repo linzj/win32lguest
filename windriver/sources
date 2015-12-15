@@ -35,6 +35,8 @@ SOURCES = \
     wait.c \
     antinx.c \
     apic.c \
+    cpuid.c \
+    cpuid_asm.asm \
     flushtlb.asm \
 
 INCLUDES= \
