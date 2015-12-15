@@ -72,7 +72,7 @@ typedef enum {
 typedef struct {
 	co_rc_t			rc;
 	co_monitor_ioctl_op_t	op;
-	char			extra_data[];
+	char			extra_data[1];
 } co_manager_ioctl_monitor_t;
 
 /* interface for CO_MANAGER_IOCTL_STATUS: */
@@ -135,14 +135,14 @@ typedef struct {
 	unsigned long		   address;
 	unsigned long		   size;
 	unsigned long		   index;
-	unsigned char		   buf[0];
+	unsigned char		   buf[1];
 } co_monitor_ioctl_load_section_t;
 
 /* interface for CO_MONITOR_IOCTL_LOAD_INITRD: */
 typedef struct {
 	co_manager_ioctl_monitor_t pc;
 	unsigned long		   size;
-	unsigned char		   buf[0];
+	unsigned char		   buf[1];
 } co_monitor_ioctl_load_initrd_t;
 
 /* interface for CO_MONITOR_IOCTL_GET_CONSOLE: */

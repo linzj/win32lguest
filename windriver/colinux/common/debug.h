@@ -105,7 +105,7 @@ typedef enum {
 typedef struct {
 	char type;
 	unsigned char length;
-	char value[];
+	char value[1];
 } co_debug_tlv_t;
 
 extern void co_debug_buf(const char *buf, long size);

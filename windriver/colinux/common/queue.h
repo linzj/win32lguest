@@ -15,7 +15,7 @@
 
 typedef struct co_queue_item {
 	co_list_t node;
-	unsigned char data[];
+	unsigned char data[1];
 } co_queue_item_t;
 
 typedef struct co_queue {

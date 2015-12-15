@@ -34,11 +34,12 @@ typedef unsigned long linux_pgd_t;
 #else
 # define NULL 	(void*)0
 #endif
+#define inline __inline
 
 /*
  * Following is taken from Linux's linux-2.6.33.5-source/lib/div64.c
  */
-static inline unsigned long co_div64_32(unsigned long long *n, unsigned long base)
+static inline unsigned long long co_div64_32(unsigned long long *n, unsigned long base)
 {
 	unsigned long long rem = *n;
 	unsigned long long b = base;

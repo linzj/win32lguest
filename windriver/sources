@@ -5,7 +5,7 @@ TARGETTYPE=DRIVER
 #	$(DDK_LIB_PATH)\ntstrsafe.lib
 
 # System and NDIS wrapper definitions.
-C_DEFINES=$(C_DEFINES) 
+C_DEFINES=$(C_DEFINES) /DCO_KERNEL=1
 
 MSC_WARNING_LEVEL=/WX /W4
 
@@ -15,6 +15,7 @@ MSC_WARNING_LEVEL=$(MSC_WARNING_LEVEL) /wd4201 /wd4214
 
 SOURCES = \
     main.c \
+    interface.c \
 
 INCLUDES= \
     ../common/include
