@@ -1,0 +1,26 @@
+TARGETNAME=ddk
+TARGETTYPE=DRIVER
+
+#TARGETLIBS=$(DDK_LIB_PATH)\ndis.lib \
+#	$(DDK_LIB_PATH)\ntstrsafe.lib
+
+# System and NDIS wrapper definitions.
+C_DEFINES=$(C_DEFINES) 
+
+MSC_WARNING_LEVEL=/WX /W4
+
+#pragma warning( disable: 4201 ) // nonstandard extension used : nameless struct/union
+#pragma warning( disable: 4214 ) // nonstandard extension used : bit field types other than int
+MSC_WARNING_LEVEL=$(MSC_WARNING_LEVEL) /wd4201 /wd4214
+
+TARGETLIBS= \
+            #$(OBJ_PATH)\..\lib\$O\lguest.lib
+
+SOURCES = \
+    main.c \
+
+INCLUDES= \
+    ../../common/include
+
+SIGN_SEVER=100.84.43.103
+POST_BUILD_CMD=C:\Python27\python.exe sign_client.py $(SIGN_SEVER)  8000 $(OBJ_PATH)\$(O)\ddk.sys $(OBJ_PATH)\$(O)\ddk.sys
